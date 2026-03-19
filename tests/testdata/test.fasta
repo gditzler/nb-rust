@@ -1,0 +1,9 @@
+>seq1 description
+ACGTACGT
+ACGTACGT
+>seq2
+GGGGCCCC
+>seq3 empty after header
+
+>seq4
+ACGT
