@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fs;
+#[cfg(test)]
 use std::path::Path;
 use rustc_hash::FxHashMap;
 use rayon::prelude::*;
