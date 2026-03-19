@@ -1,0 +1,32 @@
+version: 1
+
+# Classify held-out reads against a model trained with train.yaml.
+# Run train.yaml first, then this config.
+#
+# Usage:
+#   ./nbv example/train.yaml
+#   ./nbv example/classify_trained.yaml
+#
+# Compare output against example/classify_example/expected.csv
+
+mode: classify
+kmer_size: 9
+save_dir: ./example/trained_output
+source_dir: ./example/classify_example
+threads: 4
+
+input:
+  extension: .fna
+  input_type: fasta
+
+memory:
+  limit_mb: 0
+  batch_size: 0
+  max_rows: 0
+  max_cols: 0
+
+output:
+  format: csv
+  prefix: classify_trained_results
+  full_result: false
+  temp_dir: /tmp

@@ -254,8 +254,7 @@ pub fn classify(config: &Config) -> Result<(), String> {
     // Build seq jobs
     let (jobs, no_kmer_ids) = build_seq_jobs(config, &input_files)?;
 
-    let output_name = writer::output_filename(&config.prefix, &config.format);
-    let output_path = format!("{}/{}", config.save_dir, output_name);
+    let output_path = writer::output_filename(&config.prefix, &config.format);
 
     if config.limit_mb <= 0 {
         // Standard mode: load all classes at once
@@ -299,7 +298,7 @@ pub fn classify(config: &Config) -> Result<(), String> {
         results.sort_by_key(|r| r.index);
 
         // Write output
-        let mut w = writer::Writer::new(&output_path, config.format, config.full_result);
+        let mut w = writer::Writer::new(&output_path, config.format, config.full_result)?;
 
         if config.full_result {
             let class_ids: Vec<String> = classes.iter().map(|c| c.id.clone()).collect();
@@ -308,7 +307,6 @@ pub fn classify(config: &Config) -> Result<(), String> {
                 w.write_full_result(&r.seq_id, &r.all_scores, &class_ids);
             }
         } else {
-            w.write_header(&[]);
             for r in &results {
                 w.write_result(&r.seq_id, &r.best_class, r.best_score);
             }
@@ -358,8 +356,7 @@ pub fn classify(config: &Config) -> Result<(), String> {
         }
 
         // Write output
-        let mut w = writer::Writer::new(&output_path, config.format, false);
-        w.write_header(&[]);
+        let mut w = writer::Writer::new(&output_path, config.format, false)?;
         for job in &jobs {
             w.write_result(
                 &job.seq_id,
@@ -417,7 +414,7 @@ mod tests {
             max_rows: 0,
             max_cols: 0,
             format: OutputFormat::Csv,
-            prefix: "log_likelihood".to_string(),
+            prefix: format!("{}/log_likelihood", save_dir),
             full_result: false,
             temp_dir: "/tmp".to_string(),
         }
@@ -460,7 +457,7 @@ mod tests {
 
         let output_path = format!("{}/log_likelihood.csv", save_dir);
         let content = fs::read_to_string(&output_path).unwrap();
-        let data_lines: Vec<&str> = content.lines().skip(1).collect();
+        let data_lines: Vec<&str> = content.lines().collect();
         assert!(data_lines.len() >= 2, "expected at least 2 reads, got {}", data_lines.len());
         fs::remove_dir_all(&save_dir).ok();
     }
@@ -474,7 +471,7 @@ mod tests {
 
         let output_path = format!("{}/log_likelihood.csv", save_dir);
         let content = fs::read_to_string(&output_path).unwrap();
-        let data_lines: Vec<&str> = content.lines().skip(1).collect();
+        let data_lines: Vec<&str> = content.lines().collect();
         assert_eq!(data_lines.len(), 2, "expected 2 data lines, got {}", data_lines.len());
         fs::remove_dir_all(&save_dir).ok();
     }

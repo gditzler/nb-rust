@@ -10,13 +10,13 @@ pub struct Writer {
 }
 
 impl Writer {
-    pub fn new(path: &str, format: OutputFormat, full_result: bool) -> Self {
-        let file = File::create(path).expect("cannot create output file");
-        Writer {
+    pub fn new(path: &str, format: OutputFormat, full_result: bool) -> Result<Self, String> {
+        let file = File::create(path).map_err(|e| format!("cannot create {path}: {e}"))?;
+        Ok(Writer {
             inner: BufWriter::new(file),
             format,
             full_result,
-        }
+        })
     }
 
     pub fn write_header(&mut self, class_ids: &[String]) {
@@ -93,15 +93,15 @@ impl Writer {
     pub fn write_no_valid_kmers(&mut self, seq_id: &str) {
         match self.format {
             OutputFormat::Csv => {
-                writeln!(self.inner, "{},NO_VALID_KMERS,NaN", seq_id).unwrap();
+                writeln!(self.inner, "{},sequence contains no valid kmers,", seq_id).unwrap();
             }
             OutputFormat::Tsv => {
-                writeln!(self.inner, "{}\tNO_VALID_KMERS\tNaN", seq_id).unwrap();
+                writeln!(self.inner, "{}\tsequence contains no valid kmers\t", seq_id).unwrap();
             }
             OutputFormat::Json => {
                 writeln!(
                     self.inner,
-                    "{{\"sequence_id\":\"{}\",\"best_class\":\"NO_VALID_KMERS\",\"score\":null}}",
+                    "{{\"sequence_id\":\"{}\",\"best_class\":\"sequence contains no valid kmers\",\"score\":null}}",
                     seq_id
                 ).unwrap();
             }
@@ -136,7 +136,7 @@ mod tests {
     fn test_writer_csv() {
         let path = tmp_path("csv.csv");
         {
-            let mut w = Writer::new(&path, OutputFormat::Csv, false);
+            let mut w = Writer::new(&path, OutputFormat::Csv, false).unwrap();
             w.write_header(&[]);
             w.write_result("seq1", "classA", -42.5);
         }
@@ -151,7 +151,7 @@ mod tests {
     fn test_writer_json() {
         let path = tmp_path("json.jsonl");
         {
-            let mut w = Writer::new(&path, OutputFormat::Json, false);
+            let mut w = Writer::new(&path, OutputFormat::Json, false).unwrap();
             w.write_header(&[]);
             w.write_result("seq1", "classB", -10.0);
         }
@@ -168,13 +168,13 @@ mod tests {
     fn test_writer_no_valid_kmers() {
         let path = tmp_path("nokmers.csv");
         {
-            let mut w = Writer::new(&path, OutputFormat::Csv, false);
+            let mut w = Writer::new(&path, OutputFormat::Csv, false).unwrap();
             w.write_header(&[]);
             w.write_no_valid_kmers("bad_seq");
         }
         let content = std::fs::read_to_string(&path).unwrap();
         let lines: Vec<&str> = content.lines().collect();
-        assert_eq!(lines[1], "bad_seq,NO_VALID_KMERS,NaN");
+        assert_eq!(lines[1], "bad_seq,sequence contains no valid kmers,");
         std::fs::remove_file(&path).ok();
     }
 

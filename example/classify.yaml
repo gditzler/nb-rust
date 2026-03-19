@@ -1,0 +1,28 @@
+version: 1
+
+# Classify reads against pre-trained NBC++ legacy models (100 classes, k=9).
+# Output can be compared against example/results_max_1.csv.
+#
+# Usage: ./nbv example/classify.yaml
+
+mode: classify
+kmer_size: 9
+save_dir: ./example/training_classes
+source_dir: ./example/reads
+threads: 4
+
+input:
+  extension: .fna
+  input_type: fasta
+
+memory:
+  limit_mb: 0
+  batch_size: 0
+  max_rows: 0
+  max_cols: 0
+
+output:
+  format: csv
+  prefix: example_results
+  full_result: false
+  temp_dir: /tmp

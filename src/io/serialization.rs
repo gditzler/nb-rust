@@ -94,14 +94,12 @@ pub fn load_legacy_class(path: &str, k: usize) -> Result<NbClass, String> {
     let sumfreq_lg = r.read_f64::<LittleEndian>().map_err(|e| format!("read sumfreq_lg: {e}"))?;
     let n_entries = r.read_i32::<LittleEndian>().map_err(|e| format!("read n_entries: {e}"))? as usize;
 
-    let mut cls = NbClass::new(
-        &std::path::Path::new(path)
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("unknown"),
-        k,
-        path,
-    );
+    let basename = std::path::Path::new(path)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("unknown");
+    let id = basename.replace("-save.dat", "");
+    let mut cls = NbClass::new(&id, k, path);
     cls.ngenomes_lg = ngenomes_lg;
     cls.sumfreq_lg = sumfreq_lg;
 
