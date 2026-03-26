@@ -1,5 +1,13 @@
+//! K-mer encoding, reverse-complement, canonicalization, and counting.
+//!
+//! K-mers are short DNA subsequences of length k. Each base is encoded as a
+//! 2-bit integer (A=0, C=1, G=2, T=3), so a k-mer fits in a u32 for k <= 15.
+//! Canonical k-mers (the lexicographically smaller of forward and reverse
+//! complement) are used to ensure strand-independent counting.
+
 use rustc_hash::FxHashMap;
 
+/// Map a DNA base to its 2-bit encoding. Returns -1 for ambiguous/invalid bases.
 fn base_to_int(b: u8) -> i32 {
     match b {
         b'A' | b'a' => 0,
@@ -10,6 +18,8 @@ fn base_to_int(b: u8) -> i32 {
     }
 }
 
+/// Encode a k-mer byte slice into a packed 2-bit integer representation.
+/// Each base occupies 2 bits: A=00, C=01, G=10, T=11.
 pub fn encode(kmer: &[u8], k: usize) -> u32 {
     let mut result: u32 = 0;
     for i in 0..k {
@@ -18,6 +28,8 @@ pub fn encode(kmer: &[u8], k: usize) -> u32 {
     result
 }
 
+/// Compute the reverse complement of a 2-bit encoded k-mer.
+/// Reverses the base order and complements each base (A<->T, C<->G).
 pub fn reverse_complement(kmer_int: u32, k: usize) -> u32 {
     let mut result: u32 = 0;
     let mut val = kmer_int;
@@ -28,11 +40,18 @@ pub fn reverse_complement(kmer_int: u32, k: usize) -> u32 {
     result
 }
 
+/// Return the canonical form of a k-mer: min(forward, reverse_complement).
+/// This ensures the same k-mer is counted regardless of DNA strand.
 pub fn canonical(kmer_int: u32, k: usize) -> u32 {
     let rc = reverse_complement(kmer_int, k);
     kmer_int.min(rc)
 }
 
+/// Count canonical k-mers in a byte buffer using a sliding window.
+///
+/// Invalid bases (N, newlines, etc.) reset the window so that k-mers never
+/// span across gaps or ambiguous positions. Uses a bitmask to keep only the
+/// lowest 2k bits of the rolling hash.
 pub fn count_from_buffer(buf: &[u8], k: usize) -> FxHashMap<u32, u32> {
     let mut counts = FxHashMap::default();
     let mut window: u32 = 0;
@@ -42,6 +61,7 @@ pub fn count_from_buffer(buf: &[u8], k: usize) -> FxHashMap<u32, u32> {
     for &b in buf {
         let val = base_to_int(b);
         if val < 0 {
+            // Reset on any non-ACGT character (N, newline, etc.)
             valid_len = 0;
             window = 0;
             continue;
@@ -56,6 +76,11 @@ pub fn count_from_buffer(buf: &[u8], k: usize) -> FxHashMap<u32, u32> {
     counts
 }
 
+/// Calculate the number of distinct canonical k-mers for a given k.
+///
+/// For odd k there are no palindromes, so canonical count = 4^k / 2.
+/// For even k, palindromic k-mers (equal to their reverse complement) exist,
+/// so canonical count = (4^k + 2^k) / 2.
 pub fn num_canonical_kmers(k: usize) -> i64 {
     let total: i64 = 1i64 << (2 * k);
     if k % 2 == 1 {

@@ -1,12 +1,20 @@
+//! FASTA sequence file parser.
+//!
+//! Reads standard FASTA format where each record starts with a `>` header line
+//! followed by one or more lines of sequence data. Multiline sequences are
+//! concatenated into a single byte buffer per record.
+
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
+/// A single FASTA record: header (without the leading '>') and raw sequence bytes.
 #[derive(Debug)]
 pub struct FastaRecord {
     pub header: String,
     pub sequence: Vec<u8>,
 }
 
+/// Parse an entire FASTA file into memory as a vector of records.
 pub fn read_fasta(path: &str) -> Result<Vec<FastaRecord>, String> {
     let file = File::open(path).map_err(|e| format!("cannot open FASTA file: {e}"))?;
     let reader = BufReader::new(file);
@@ -43,6 +51,7 @@ pub fn read_fasta(path: &str) -> Result<Vec<FastaRecord>, String> {
     Ok(records)
 }
 
+/// Count the number of sequences in a FASTA file by counting '>' header lines.
 pub fn count_sequences(path: &str) -> Result<u64, String> {
     let file = File::open(path).map_err(|e| format!("cannot open FASTA file: {e}"))?;
     let reader = BufReader::new(file);

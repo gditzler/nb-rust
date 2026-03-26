@@ -1,8 +1,15 @@
+//! Reader for pre-computed k-mer frequency files (NBC++ `.kmr` format).
+//!
+//! Each line contains a k-mer string and its count, separated by a tab.
+//! K-mers are encoded and canonicalized so that forward and reverse-complement
+//! counts are combined.
+
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use rustc_hash::FxHashMap;
 use crate::kmer::{encode, canonical};
 
+/// Read a tab-separated k-mer count file and return canonical k-mer counts.
 pub fn read_kmer_file(path: &str, k: usize) -> Result<FxHashMap<u32, u32>, String> {
     let file = File::open(path).map_err(|e| format!("cannot open kmer file: {e}"))?;
     let reader = BufReader::new(file);

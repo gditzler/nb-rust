@@ -1,3 +1,13 @@
+//! Binary serialization for trained Naive Bayes models.
+//!
+//! Supports two formats:
+//! - **NBV** (native): Magic "NBV1" + version byte, followed by kmer_size,
+//!   ngenomes, sumfreq, class ID, and kmer-count pairs. Log fields are
+//!   recomputed on load.
+//! - **Legacy** (NBC++ `-save.dat`): Pre-computed log values only (ngenomes_lg,
+//!   sumfreq_lg, then kmer→log-frequency pairs). Loaded as ClassifyOnly since
+//!   raw counts are not available.
+
 use std::fs::{self, File};
 use std::io::{BufReader, BufWriter, Read, Write};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};

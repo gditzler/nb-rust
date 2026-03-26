@@ -1,3 +1,17 @@
+//! Training pipeline: scans a directory of per-class subdirectories, counts
+//! k-mers from each genome file, accumulates counts into `NbClass` models,
+//! and serializes the trained models to disk.
+//!
+//! The training directory structure is:
+//! ```text
+//! source_dir/
+//!   class_a/
+//!     genome1.fasta
+//!     genome2.fasta
+//!   class_b/
+//!     genome1.fasta
+//! ```
+
 use std::collections::HashMap;
 use std::fs;
 #[cfg(test)]

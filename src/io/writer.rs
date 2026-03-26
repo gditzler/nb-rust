@@ -1,8 +1,16 @@
+//! Output writer for classification results in CSV, TSV, or JSON Lines format.
+//!
+//! Supports two output modes:
+//! - **Best-only**: sequence_id, best_class, score (one line per query)
+//! - **Full result**: sequence_id followed by log-likelihood scores for every class
+
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use rustc_hash::FxHashMap;
 use crate::config::OutputFormat;
 
+/// Buffered writer that formats classification results according to the
+/// configured output format (CSV, TSV, or JSON Lines).
 pub struct Writer {
     inner: BufWriter<File>,
     format: OutputFormat,
@@ -115,6 +123,7 @@ impl Drop for Writer {
     }
 }
 
+/// Generate the output filename by appending the format-appropriate extension.
 pub fn output_filename(prefix: &str, format: &OutputFormat) -> String {
     let ext = match format {
         OutputFormat::Csv => ".csv",

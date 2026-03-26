@@ -1,16 +1,28 @@
+//! Naive Bayes classification model for k-mer frequency profiles.
+//!
+//! Each `NbClass` represents one taxonomic class. It stores k-mer frequency
+//! counts from training genomes and computes log-likelihoods for query sequences.
+//! Uses Laplace smoothing (add-one) and Kahan compensated summation for
+//! numerical stability.
+
 use rustc_hash::FxHashMap;
 use crate::kmer::num_canonical_kmers;
 
 // ---------------------------------------------------------------------------
-// Kahan compensated summation
+// Kahan compensated summation — reduces floating-point accumulation error
+// when summing many small values, which is critical for log-likelihood scores.
 // ---------------------------------------------------------------------------
 
+/// Accumulator for Kahan compensated summation.
+/// Tracks both the running sum and a compensation term to recover lost
+/// low-order bits from each addition.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct KahanAccumulator {
     pub sum: f64,
     pub comp: f64,
 }
 
+/// Add a value to the Kahan accumulator with error compensation.
 pub fn kahan_add(acc: &mut KahanAccumulator, val: f64) {
     let y = val - acc.comp;
     let t = acc.sum + y;
@@ -22,6 +34,8 @@ pub fn kahan_add(acc: &mut KahanAccumulator, val: f64) {
 // LoadState
 // ---------------------------------------------------------------------------
 
+/// Tracks whether a model has raw counts (Full) or only log-transformed
+/// values (ClassifyOnly, used for legacy NBC++ models that lack raw counts).
 #[derive(Debug, Clone, PartialEq)]
 pub enum LoadState {
     Unloaded,
@@ -33,15 +47,26 @@ pub enum LoadState {
 // NbClass
 // ---------------------------------------------------------------------------
 
+/// A single Naive Bayes class model built from one or more training genomes.
+///
+/// Maintains both raw k-mer counts (`freqcnt`, `sumfreq`) for training/serialization
+/// and precomputed log-transformed values (`freqcnt_lg`, `sumfreq_lg`) for fast
+/// classification. The `sumfreq` is initialized to `num_canonical_kmers(k)` as a
+/// Laplace prior so that unseen k-mers still contribute to the likelihood.
 pub struct NbClass {
     pub id: String,
     pub kmer_size: usize,
     pub savefile: String,
+    /// ln(ngenomes) — used externally; not part of log-likelihood scoring.
     pub ngenomes_lg: f64,
+    /// ln(sumfreq) — the normalizing constant in the log-likelihood formula.
     pub sumfreq_lg: f64,
+    /// ln(freqcnt[km] + 1) for each observed k-mer (Laplace-smoothed).
     pub freqcnt_lg: FxHashMap<u32, f64>,
     pub ngenomes: u32,
+    /// Total k-mer count including the Laplace prior (starts at num_canonical_kmers).
     pub sumfreq: i64,
+    /// Raw k-mer occurrence counts accumulated during training.
     pub freqcnt: FxHashMap<u32, u32>,
     pub state: LoadState,
 }

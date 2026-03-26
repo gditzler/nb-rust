@@ -1,17 +1,26 @@
+//! YAML configuration parsing and validation for the nb-rust pipeline.
+//!
+//! The config file controls whether to train or classify, which input format
+//! to use, parallelism settings, memory limits, and output formatting. See
+//! the README for a full example YAML config.
+
 use serde::Deserialize;
 
+/// Whether to train new models or classify query sequences.
 #[derive(Debug, Clone)]
 pub enum Mode {
     Train,
     Classify,
 }
 
+/// Input file format: pre-computed k-mer counts or raw FASTA sequences.
 #[derive(Debug, Clone)]
 pub enum InputType {
     KmerFile,
     Fasta,
 }
 
+/// Output format for classification results.
 #[derive(Debug, Clone, Copy)]
 pub enum OutputFormat {
     Csv,
@@ -19,6 +28,7 @@ pub enum OutputFormat {
     Json,
 }
 
+/// Validated configuration for the nb-rust pipeline.
 #[derive(Debug, Clone)]
 pub struct Config {
     pub version: u32,
@@ -107,6 +117,7 @@ fn default_kmer_size() -> usize { 6 }
 fn default_save_dir() -> String { "./nbv_save".into() }
 fn default_threads() -> usize { 1 }
 
+/// Load and validate a YAML config file, applying defaults for optional fields.
 pub fn load(path: &str) -> Result<Config, String> {
     let content = std::fs::read_to_string(path)
         .map_err(|e| format!("cannot read config: {e}"))?;

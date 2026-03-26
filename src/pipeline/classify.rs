@@ -1,3 +1,12 @@
+//! Classification pipeline: loads trained models, counts k-mers in query
+//! sequences, and scores each query against all classes to find the best match.
+//!
+//! Supports two execution modes:
+//! - **Standard** (`limit_mb = 0`): loads all class models into memory at once.
+//! - **Multi-round** (`limit_mb > 0`): partitions classes into memory-bounded
+//!   chunks and processes them in rounds, tracking the global best score per
+//!   query across rounds. Useful when the model set exceeds available RAM.
+
 use std::fs;
 use std::path::Path;
 use rustc_hash::FxHashMap;
@@ -9,17 +18,21 @@ use crate::kmer;
 use crate::model::NbClass;
 use crate::pipeline::train::load_kmer_counts;
 
+/// Path to a class model file, with a flag indicating legacy NBC++ format.
 pub(crate) struct ClassPath {
     path: String,
     legacy: bool,
 }
 
+/// A single classification job: one query sequence's k-mer counts ready to score.
 struct SeqJob {
     seq_id: String,
     kmer_counts: FxHashMap<u32, u32>,
     index: usize,
 }
 
+/// Result of classifying one query: the winning class, its score, and optionally
+/// all class scores (when full_result mode is enabled).
 struct ClassifyResult {
     seq_id: String,
     best_class: String,
@@ -199,7 +212,9 @@ fn build_seq_jobs(
     Ok((jobs, no_kmer_ids))
 }
 
-/// Split class paths into chunks by estimated memory usage.
+/// Split class paths into memory-bounded chunks for multi-round classification.
+/// Estimates in-memory size as 3x the file size on disk (accounts for hash map
+/// overhead and log-transformed copies of the counts).
 fn split_classes_by_memory(paths: &[ClassPath], limit_bytes: u64) -> Vec<Vec<usize>> {
     let mut chunks: Vec<Vec<usize>> = Vec::new();
     let mut current_chunk: Vec<usize> = Vec::new();

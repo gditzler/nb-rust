@@ -1,3 +1,9 @@
+//! nb-rust — Naive Bayes classifier for metagenomic sequence classification.
+//!
+//! This is a Rust reimplementation of NBC++ that classifies DNA sequences using
+//! k-mer frequency profiles. It supports both training new models from FASTA or
+//! pre-computed k-mer files and classifying query sequences against trained models.
+
 mod kmer;
 mod model;
 mod config;
