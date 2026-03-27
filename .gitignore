@@ -2,3 +2,5 @@
 /target
 .dmux/
 .dmux-hooks/
+data/
+.DS_Store
